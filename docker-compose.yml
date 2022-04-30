@@ -1,0 +1,46 @@
+secrets:
+  database-password:
+    file: app/secrets/DATABASE_PASSWORD
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+      target: dev
+    ports:
+      - '${APP_HTTP_PORT-80}:8080'
+    volumes:
+      - source: app
+        target: /var/www/html
+        consistency: cached
+        read_only: false
+        type: bind
+    tmpfs:
+      - /var/www/html/var
+    secrets:
+      - source: database-password
+        target: database-password
+
+  database:
+    image: docker.io/library/mysql:8-oracle
+    environment:
+      MYSQL_DATABASE: 'mydbname'
+      MYSQL_USER: 'qadadain'
+      MYSQL_PASSWORD_FILE: '/run/secrets/database-password'
+      MYSQL_ONETIME_PASSWORD: yes
+      MYSQL_RANDOM_ROOT_PASSWORD: yes
+    secrets:
+      - database-password
+
+
+  dbadmin:
+    image: docker.io/library/phpmyadmin:5.1-apache
+    environment:
+      PMA_USER: 'qadadain'
+      PMA_PASSWORD_FILE: '/run/secrets/database-password'
+      PMA_HOST: 'database'
+    secrets:
+      - database-password
+    ports:
+      - '8080:80'
